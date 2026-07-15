@@ -1,7 +1,30 @@
-import { createCanvas } from '@napi-rs/canvas';
+import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
 import GIFEncoder from 'gif-encoder-2';
 
+// Variable global para almacenar si la fuente ya está registrada
+let isFontLoaded = false;
+
+// Función para descargar y registrar la fuente en Vercel la primera vez que arranca
+async function loadFont() {
+  if (isFontLoaded) return;
+  try {
+    // Descargamos la tipografía "Roboto" oficial de los servidores de Google
+    const response = await fetch('https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.ttf');
+    const arrayBuffer = await response.arrayBuffer();
+    const fontBuffer = Buffer.from(arrayBuffer);
+    
+    // Registramos la fuente en el motor gráfico de manera global
+    GlobalFonts.register(fontBuffer, 'Roboto');
+    isFontLoaded = true;
+  } catch (err) {
+    console.error('Error cargando la tipografía:', err);
+  }
+}
+
 export default async function handler(req, res) {
+  // Asegurar que la tipografía esté disponible antes de dibujar
+  await loadFont();
+
   const targetTimeStr = req.query.time || '2026-12-31T23:59:59';
   const targetDate = new Date(targetTimeStr);
   const now = new Date();
@@ -39,7 +62,9 @@ export default async function handler(req, res) {
     ctx.strokeRect(6, 6, width - 12, height - 12);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 30px system-ui, -apple-system, sans-serif';
+    
+    // Usamos 'Roboto' (la fuente que acabamos de registrar arriba)
+    ctx.font = 'bold 30px Roboto'; 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, width / 2, height / 2);
