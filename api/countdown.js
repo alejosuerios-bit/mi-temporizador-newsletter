@@ -1,30 +1,17 @@
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
 import GIFEncoder from 'gif-encoder-2';
+import path from 'path';
 
-// Variable global para almacenar si la fuente ya está registrada
-let isFontLoaded = false;
-
-// Función para descargar y registrar la fuente en Vercel la primera vez que arranca
-async function loadFont() {
-  if (isFontLoaded) return;
-  try {
-    // Descargamos la tipografía "Roboto" oficial de los servidores de Google
-    const response = await fetch('https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.ttf');
-    const arrayBuffer = await response.arrayBuffer();
-    const fontBuffer = Buffer.from(arrayBuffer);
-    
-    // Registramos la fuente en el motor gráfico de manera global
-    GlobalFonts.register(fontBuffer, 'Roboto');
-    isFontLoaded = true;
-  } catch (err) {
-    console.error('Error cargando la tipografía:', err);
-  }
+// Cargamos la fuente de forma ultra-rápida directamente desde el disco de Vercel
+try {
+  // process.cwd() apunta a la raíz de tu proyecto en el servidor de Vercel
+  const fontPath = path.join(process.cwd(), 'arial.ttf');
+  GlobalFonts.registerFromPath(fontPath, 'Arial');
+} catch (err) {
+  console.error('Error cargando la fuente local:', err);
 }
 
 export default async function handler(req, res) {
-  // Asegurar que la tipografía esté disponible antes de dibujar
-  await loadFont();
-
   const targetTimeStr = req.query.time || '2026-12-31T23:59:59';
   const targetDate = new Date(targetTimeStr);
   const now = new Date();
@@ -63,8 +50,8 @@ export default async function handler(req, res) {
 
     ctx.fillStyle = '#ffffff';
     
-    // Usamos 'Roboto' (la fuente que acabamos de registrar arriba)
-    ctx.font = 'bold 30px Roboto'; 
+    // Usamos 'Arial' (la fuente cargada físicamente desde el disco)
+    ctx.font = 'bold 30px Arial'; 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, width / 2, height / 2);
